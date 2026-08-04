@@ -144,7 +144,7 @@ function reporter.toJUnit(results)
                     local trace = tostring(err.trace or "")
                     table.insert(lines, string.format(
                         '      <failure message="%s"><![CDATA[%s\n%s]]></failure>',
-                        escapeXml(msg), escapeXml(msg), escapeCdata(trace)))
+                        escapeXml(msg), escapeCdata(msg), escapeCdata(trace)))
                 end
             end
 
