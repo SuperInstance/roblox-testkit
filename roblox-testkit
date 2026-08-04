@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# Wrapper for the roblox-testkit CLI runner.
+# Usage: roblox-testkit [options] <spec-file>
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+exec lua "${SCRIPT_DIR}/src/runner.lua" "$@"
