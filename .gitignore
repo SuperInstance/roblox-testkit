@@ -11,3 +11,4 @@ Thumbs.db
 *.swo
 .vscode/
 .idea/
+.coverage
