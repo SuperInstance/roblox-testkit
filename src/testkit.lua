@@ -91,7 +91,12 @@ end
 
 function testkit.loadModule(path)
     local mock = require("roblox_mock")
-    local chunk, err = loadfile(path)
+    -- Try Luau strip first (handles type annotations), fall back to loadfile
+    local luauStrip = require("luau_strip")
+    local chunk, err = luauStrip.loadFile(path)
+    if not chunk then
+        chunk, err = loadfile(path)
+    end
     if not chunk then
         error("Failed to load module '" .. path .. "': " .. tostring(err), 2)
     end
