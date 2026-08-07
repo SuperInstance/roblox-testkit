@@ -253,21 +253,27 @@ end
 if not math.sign then
     math.sign = function(v) return v > 0 and 1 or (v < 0 and -1 or 0) end
 end
-Vector3 = Vector3 or setmetatable({}, {
-    __call = function(_, x, y, z)
-        return setmetatable({X = x or 0, Y = y or 0, Z = z or 0, x = x or 0, y = y or 0, z = z or 0}, {
-            __sub = function(a, b) return Vector3(a.X-b.X, a.Y-b.Y, a.Z-b.Z) end,
-            __add = function(a, b) return Vector3(a.X+b.X, a.Y+b.Y, a.Z+b.Z) end,
-            __tostring = function(a) return string.format("Vector3(%f, %f, %f)", a.X, a.Y, a.Z) end,
-        })
-    end
-})
-Vector3.new = Vector3
-CFrame = CFrame or setmetatable({}, {
-    __call = function(_, x, y, z) return setmetatable({Position = Vector3(x or 0, y or 0, z or 0)}, {__sub = function(a, b) return a end}) end
-})
-CFrame.new = CFrame
-Enum = Enum or setmetatable({}, {__index = function(t, k) return setmetatable({}, {__index = function(t2, k2) return {Name = k2, Value = 0} end}) end})
+if not Vector3 then
+    Vector3 = setmetatable({}, {
+        __call = function(_, x, y, z)
+            return setmetatable({X = x or 0, Y = y or 0, Z = z or 0, x = x or 0, y = y or 0, z = z or 0}, {
+                __sub = function(a, b) return Vector3(a.X-b.X, a.Y-b.Y, a.Z-b.Z) end,
+                __add = function(a, b) return Vector3(a.X+b.X, a.Y+b.Y, a.Z+b.Z) end,
+                __tostring = function(a) return string.format("Vector3(%f, %f, %f)", a.X, a.Y, a.Z) end,
+            })
+        end
+    })
+    Vector3.new = Vector3
+end
+if not CFrame then
+    CFrame = setmetatable({}, {
+        __call = function(_, x, y, z) return setmetatable({Position = Vector3(x or 0, y or 0, z or 0)}, {__sub = function(a, b) return a end, __mul = function(a, b) return a end}) end
+    })
+    CFrame.new = CFrame
+end
+if not Enum then
+    Enum = setmetatable({}, {__index = function(t, k) return setmetatable({}, {__index = function(t2, k2) return {Name = k2, Value = 0} end}) end})
+end
 ]]
     return polyfill .. "\n" .. result
 end

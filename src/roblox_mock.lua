@@ -77,6 +77,9 @@ Instance.__index = function(t, k)
     if k == "Parent" then
         return rawget(t, "_parent")
     end
+    -- Check instance's own fields first (e.g., workspace.Terrain)
+    local own = rawget(t, k)
+    if own ~= nil then return own end
     return Instance[k]
 end
 
@@ -231,6 +234,14 @@ end
 function Instance:Destroy()
     self._destroyed = true
     self.Parent = nil
+    local kids = {unpack(self._children)}
+    for _, child in ipairs(kids) do
+        child:Destroy()
+    end
+    self._children = {}
+end
+
+function Instance:ClearAllChildren()
     local kids = {unpack(self._children)}
     for _, child in ipairs(kids) do
         child:Destroy()
@@ -619,6 +630,11 @@ function DataModel:GetService(name)
         svc = newService("Workspace", "Workspace")
         svc.Gravity = 196.2
         svc.StreamingEnabled = false
+        -- Terrain child (needed by modules that reference workspace.Terrain)
+        local terrain = Instance.new("Terrain")
+        terrain.Parent = svc
+        terrain.FillBlock = function(self, cframe, size, material) end
+        svc.Terrain = terrain
 
     else
         -- Unknown service: create a generic service instance.
@@ -631,6 +647,114 @@ function DataModel:GetService(name)
 end
 
 function DataModel:IsLoaded() return true end
+
+-----------------------------------------------------------------------------
+-- Math Types (Color3, Vector3, CFrame, NumberRange, NumberSequence)
+-----------------------------------------------------------------------------
+
+-- Color3
+local Color3 = {}
+Color3.__index = Color3
+
+function Color3.new(r, g, b)
+    return setmetatable({
+        R = r or 0,
+        G = g or 0,
+        B = b or 0,
+        _robloxType = "Color3"
+    }, Color3)
+end
+
+function Color3.fromRGB(r, g, b)
+    return Color3.new((r or 0) / 255, (g or 0) / 255, (b or 0) / 255)
+end
+
+function Color3.fromHSV(h, s, v)
+    return Color3.new(h, s, v)
+end
+
+function Color3:ToRGB()
+    return math.floor(self.R * 255 + 0.5), math.floor(self.G * 255 + 0.5), math.floor(self.B * 255 + 0.5)
+end
+
+-- Vector3
+local Vector3 = {}
+Vector3.__index = Vector3
+
+function Vector3.new(x, y, z)
+    return setmetatable({
+        X = x or 0,
+        Y = y or 0,
+        Z = z or 0,
+        _robloxType = "Vector3"
+    }, Vector3)
+end
+
+-- CFrame (simplified — only position)
+local CFrame = {}
+CFrame.__index = CFrame
+
+function CFrame.new(pos)
+    return setmetatable({
+        Position = pos or Vector3.new(),
+        X = (pos and pos.X) or 0,
+        Y = (pos and pos.Y) or 0,
+        Z = (pos and pos.Z) or 0,
+        _robloxType = "CFrame"
+    }, { __index = CFrame, __mul = function(a, b) return a end, __sub = function(a, b) return a end })
+end
+
+function CFrame.Angles(x, y, z)
+    return setmetatable({
+        Position = Vector3.new(),
+        X = 0, Y = 0, Z = 0,
+        _rotX = x, _rotY = y, _rotZ = z,
+        _robloxType = "CFrame"
+    }, { __index = CFrame, __mul = function(a, b) return a end, __sub = function(a, b) return a end })
+end
+
+-- NumberRange
+local NumberRange = {}
+NumberRange.__index = NumberRange
+
+function NumberRange.new(min, max)
+    return setmetatable({
+        Min = min or 0,
+        Max = max or min or 0,
+        _robloxType = "NumberRange"
+    }, NumberRange)
+end
+
+-- NumberSequence
+local NumberSequence = {}
+NumberSequence.__index = NumberSequence
+
+function NumberSequence.new(a, b)
+    if type(a) == "table" and a.Keypoints then
+        return setmetatable({ Keypoints = a.Keypoints, _robloxType = "NumberSequence" }, NumberSequence)
+    end
+    return setmetatable({
+        Keypoints = {
+            { Time = 0, Value = a or 0 },
+            { Time = 1, Value = b or a or 0 }
+        },
+        _robloxType = "NumberSequence"
+    }, NumberSequence)
+end
+
+-- ColorSequence
+local ColorSequence = {}
+ColorSequence.__index = ColorSequence
+
+function ColorSequence.new(a, b)
+    return setmetatable({
+        Keypoints = {
+            { Time = 0, Value = a },
+            { Time = 1, Value = b or a }
+        },
+        _robloxType = "ColorSequence"
+    }, ColorSequence)
+end
 
 -----------------------------------------------------------------------------
 -- Public API
@@ -662,6 +786,12 @@ function RobloxMock.create()
     mock.HttpService = game:GetService("HttpService")
     mock.Instance = RobloxMock.Instance
     mock.Event = Event
+    mock.Color3 = Color3
+    mock.Vector3 = Vector3
+    mock.CFrame = CFrame
+    mock.NumberRange = NumberRange
+    mock.NumberSequence = NumberSequence
+    mock.ColorSequence = ColorSequence
     mock.TweenInfo = {
         new = function(time, easingStyle, easingDirection, repeatCount, reverses, delayTime)
             return {
